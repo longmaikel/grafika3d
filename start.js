@@ -7,6 +7,29 @@ function start() {
 	return;
 }
 
+	//*****************pointer lock object forking for cross browser**********************
+	canvas.requestPointerLock = canvas.requestPointerLock ||
+		canvas.mozRequestPointerLock;
+	document.exitPointerLock = document.exitPointerLock ||
+		document.mozExitPointerLock;
+	canvas.onclick = function() {
+		canvas.requestPointerLock();
+	};
+// Hook pointer lock state change events for different browsers
+	document.addEventListener('pointerlockchange', lockChangeAlert, false);
+	document.addEventListener('mozpointerlockchange', lockChangeAlert, false);
+	function lockChangeAlert() {
+		if (document.pointerLockElement === canvas ||
+			document.mozPointerLockElement === canvas) {
+			console.log('The pointer lock status is now locked');
+			document.addEventListener("mousemove", ustaw_kamere_mysz, false);
+		} else {
+			console.log('The pointer lock status is now unlocked');
+			document.removeEventListener("mousemove", ustaw_kamere_mysz, false);
+		}
+	}
+//****************************************************************
+
 console.log("WebGL version: " + gl.getParameter(gl.VERSION));
 console.log("GLSL version: " + gl.getParameter(gl.SHADING_LANGUAGE_VERSION));
 console.log("Vendor: " + gl.getParameter(gl.VENDOR));
@@ -134,11 +157,29 @@ const buffer = gl.createBuffer();
 	let cameraUp = glm.vec3(0,1,0);
 	let obrot=0.0;
 
-	window.requestAnimationFrame(draw);
+	// window.requestAnimationFrame(draw);
+	setTimeout(() => { requestAnimationFrame(draw);}, 1000 / 10);
 
 	gl.enable(gl.DEPTH_TEST);
 
-function draw(){
+	//fpsy
+	let licznik=0;
+	const fpsElem = document.querySelector("#fps");
+
+	let startTime=0;
+	let elapsedTime=0;
+
+function draw() {
+
+	elapsedTime = performance.now() - startTime;
+	startTime = performance.now();
+	licznik++;
+	let fFps = 1000 / elapsedTime;
+// ograniczenie częstotliwości odświeżania napisu do ok 1/s
+	if(licznik > fFps){
+		fpsElem.textContent = fFps.toFixed(1);
+		licznik = 0;
+	}
 
 	ustawKamere();
 
@@ -254,15 +295,17 @@ window.addEventListener('keydown', function(event) {
 		}
 
 		if (pressedKey["37"]) { //left
-			obrot -= cameraSpeed;
-			cameraFront.x = Math.sin(obrot);
-			cameraFront.z = -Math.cos(obrot);
+			let cameraPos_tmp = glm.normalize(glm.cross(cameraFront, cameraUp));
+			cameraPos.x-=cameraPos_tmp.x * cameraSpeed;
+			cameraPos.y-=cameraPos_tmp.y * cameraSpeed;
+			cameraPos.z-=cameraPos_tmp.z * cameraSpeed;
 		}
 
 		if (pressedKey["39"]) { //right
-			obrot += cameraSpeed;
-			cameraFront.x = Math.sin(obrot);
-			cameraFront.z = -Math.cos(obrot);
+			let cameraPos_tmp = glm.normalize(glm.cross(cameraFront, cameraUp));
+			cameraPos.x+=cameraPos_tmp.x * cameraSpeed;
+			cameraPos.y+=cameraPos_tmp.y * cameraSpeed;
+			cameraPos.z+=cameraPos_tmp.z * cameraSpeed;
 		}
 
 		let cameraFront_tmp = glm.vec3(1,1,1);
@@ -272,7 +315,36 @@ window.addEventListener('keydown', function(event) {
 		mat4.lookAt(view, cameraPos, cameraFront_tmp, cameraUp);
 		gl.uniformMatrix4fv( uniView, false, view);
 
+	}
 
+	let x = 50; //zmiana położenia w kierunku x
+	let y = 50; //zmiana położenia w kierunku y
+	let yaw =-90; //obrót względem osi X
+	let pitch=0; //obrót względem osi Y
+
+	function ustaw_kamere_mysz(e) {
+		let xoffset = e.movementX;
+		let yoffset = e.movementY;
+
+		let sensitivity = 0.1;
+		let cameraSpeed = 0.05*elapsedTime;
+
+		xoffset *= sensitivity;
+		yoffset *= sensitivity;
+
+		yaw += xoffset * cameraSpeed;
+		pitch -= yoffset*cameraSpeed;
+
+		if (pitch > 89.0)
+			pitch = 89.0;
+		if (pitch < -89.0)
+			pitch = -89.0;
+		let front = glm.vec3(1,1,1);
+
+		front.x = Math.cos(glm.radians(yaw))*Math.cos(glm.radians(pitch));
+		front.y = Math.sin(glm.radians(pitch));
+		front.z = Math.sin(glm.radians(yaw)) * Math.cos(glm.radians(pitch));
+		cameraFront = glm.normalize(front);
 	}
 
 
