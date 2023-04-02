@@ -7,6 +7,34 @@ function start() {
 	return;
 }
 
+	//texture1 *****************************************************************************
+	const texture1 = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, texture1);
+	const level = 0;
+	const internalFormat = gl.RGBA;
+	const width = 1;
+	const height = 1;
+	const border = 0;
+	const srcFormat = gl.RGBA;
+	const srcType = gl.UNSIGNED_BYTE;
+	const pixel = new Uint8Array([0, 0, 255, 255]);
+	gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
+		width, height, border, srcFormat, srcType,
+		pixel);
+	const image = new Image();
+	image.onload = function() {
+		gl.bindTexture(gl.TEXTURE_2D, texture1);
+		gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,srcFormat, srcType, image);
+		gl.generateMipmap(gl.TEXTURE_2D);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+	};
+	image.crossOrigin = "";
+	image.src = "https://cdn.pixabay.com/photo/2013/09/22/19/14/brick-wall-185081_960_720.jpg";
+//****************************************************************
+
 	//*****************pointer lock object forking for cross browser**********************
 	canvas.requestPointerLock = canvas.requestPointerLock ||
 		canvas.mozRequestPointerLock;
@@ -47,10 +75,14 @@ const program = gl.createProgram();
 			uniform mat4 view;
 			uniform mat4 proj;
 			
+			in vec2 aTexCoord;
+			out vec2 TexCoord;
+			
 			out vec3 Color;
 			
 			void main(void)
 			{
+			TexCoord = aTexCoord;
 			Color = color;
 			   gl_Position =proj * view * model * vec4(position, 1.0);
 			}
@@ -60,10 +92,13 @@ const program = gl.createProgram();
 		`#version 300 es
 		   precision highp float;
 		   in vec3 Color;
+		   in vec2 TexCoord;
 		   out vec4 frag_color;
+		   uniform sampler2D texture1;
+		   
 		   void main(void)
 	   	{
-		      frag_color = vec4(Color, 1.0);
+	   		frag_color = texture(texture1, TexCoord);
 	   	}
 			`;
 
@@ -117,11 +152,15 @@ const buffer = gl.createBuffer();
 	// dane wierzcholkowe
 	const positionAttrib = gl.getAttribLocation(program, "position");
 	gl.enableVertexAttribArray(positionAttrib);
-	gl.vertexAttribPointer(positionAttrib, 3, gl.FLOAT, false, 6*4, 0);
+	gl.vertexAttribPointer(positionAttrib, 3, gl.FLOAT, false, 8*4, 0);
 
 	const colorAttrib = gl.getAttribLocation(program, "color");
 	gl.enableVertexAttribArray(colorAttrib);
-	gl.vertexAttribPointer(colorAttrib, 3, gl.FLOAT, false, 6*4, 3*4);
+	gl.vertexAttribPointer(colorAttrib, 3, gl.FLOAT, false, 8*4, 3*4);
+
+	const texCoord = gl.getAttribLocation(program, "aTexCoord");
+	gl.enableVertexAttribArray(texCoord);
+	gl.vertexAttribPointer(texCoord, 2, gl.FLOAT, false, 8*4, 6*4);
 
 	//macierze
 	// macierz modelu
@@ -230,47 +269,47 @@ window.addEventListener('keydown', function(event) {
 		let punkty_ = 36;
 
 		var vertices = [
-			-0.5, -0.5, -0.5,  0.0, 0.0, 0.0,
-			0.5, -0.5, -0.5,  0.0, 0.0, 1.0,
-			0.5,  0.5, -0.5,  0.0, 1.0, 1.0,
-			0.5,  0.5, -0.5,  0.0, 1.0, 1.0,
-			-0.5,  0.5, -0.5,  0.0, 1.0, 0.0,
-			-0.5, -0.5, -0.5,  0.0, 0.0, 0.0,
+			-0.5, -0.5, -0.5,  0.0, 0.0, 0.0, 0.0, 0.0,
+			0.5, -0.5, -0.5,  0.0, 0.0, 1.0, 1.0, 0.0,
+			0.5,  0.5, -0.5,  0.0, 1.0, 1.0, 1.0, 1.0,
+			0.5,  0.5, -0.5,  0.0, 1.0, 1.0, 1.0, 1.0,
+			-0.5,  0.5, -0.5,  0.0, 1.0, 0.0, 0.0, 1.0,
+			-0.5, -0.5, -0.5,  0.0, 0.0, 0.0, 0.0, 0.0,
 
-			-0.5, -0.5,  0.5,  0.0, 0.0, 0.0,
-			0.5, -0.5,  0.5,  1.0, 0.0, 1.0,
-			0.5,  0.5,  0.5,  1.0, 1.0, 1.0,
-			0.5,  0.5,  0.5,  1.0, 1.0, 1.0,
-			-0.5,  0.5,  0.5,  0.0, 1.0, 0.0,
-			-0.5, -0.5,  0.5,  0.0, 0.0, 0.0,
+			-0.5, -0.5,  0.5,  0.0, 0.0, 0.0, 0.0, 0.0,
+			0.5, -0.5,  0.5,  1.0, 0.0, 1.0, 1.0, 0.0,
+			0.5,  0.5,  0.5,  1.0, 1.0, 1.0, 1.0, 1.0,
+			0.5,  0.5,  0.5,  1.0, 1.0, 1.0, 1.0, 1.0,
+			-0.5,  0.5,  0.5,  0.0, 1.0, 0.0, 0.0, 1.0,
+			-0.5, -0.5,  0.5,  0.0, 0.0, 0.0, 0.0, 0.0,
 
-			-0.5,  0.5,  0.5,  1.0, 0.0, 1.0,
-			-0.5,  0.5, -0.5,  1.0, 1.0, 1.0,
-			-0.5, -0.5, -0.5,  0.0, 1.0, 0.0,
-			-0.5, -0.5, -0.5,  0.0, 1.0, 0.0,
-			-0.5, -0.5,  0.5,  0.0, 0.0, 0.0,
-			-0.5,  0.5,  0.5,  1.0, 0.0, 1.0,
+			-0.5,  0.5,  0.5,  1.0, 0.0, 1.0, 0.0, 0.0,
+			-0.5,  0.5, -0.5,  1.0, 1.0, 1.0, 1.0, 0.0,
+			-0.5, -0.5, -0.5,  0.0, 1.0, 0.0, 1.0, 1.0,
+			-0.5, -0.5, -0.5,  0.0, 1.0, 0.0, 1.0, 1.0,
+			-0.5, -0.5,  0.5,  0.0, 0.0, 0.0, 0.0, 1.0,
+			-0.5,  0.5,  0.5,  1.0, 0.0, 1.0, 0.0, 0.0,
 
-			0.5,  0.5,  0.5,  1.0, 0.0, 1.0,
-			0.5,  0.5, -0.5,  1.0, 1.0, 1.0,
-			0.5, -0.5, -0.5,  0.0, 1.0, 0.0,
-			0.5, -0.5, -0.5,  0.0, 1.0, 0.0,
-			0.5, -0.5,  0.5,  0.0, 0.0, 0.0,
-			0.5,  0.5,  0.5,  1.0, 0.0, 1.0,
+			0.5,  0.5,  0.5,  1.0, 0.0, 1.0, 0.0, 0.0,
+			0.5,  0.5, -0.5,  1.0, 1.0, 1.0, 1.0, 0.0,
+			0.5, -0.5, -0.5,  0.0, 1.0, 0.0, 1.0, 1.0,
+			0.5, -0.5, -0.5,  0.0, 1.0, 0.0, 1.0, 1.0,
+			0.5, -0.5,  0.5,  0.0, 0.0, 0.0, 0.0, 1.0,
+			0.5,  0.5,  0.5,  1.0, 0.0, 1.0, 0.0, 0.0,
 
-			-0.5, -0.5, -0.5,  0.0, 1.0, 0.0,
-			0.5, -0.5, -0.5,  1.0, 1.0, 1.0,
-			0.5, -0.5,  0.5,  1.0, 0.0, 1.0,
-			0.5, -0.5,  0.5,  1.0, 0.0, 1.0,
-			-0.5, -0.5,  0.5,  0.0, 0.0, 0.0,
-			-0.5, -0.5, -0.5,  0.0, 1.0, 0.0,
+			-0.5, -0.5, -0.5,  0.0, 1.0, 0.0, 0.0, 0.0,
+			0.5, -0.5, -0.5,  1.0, 1.0, 1.0, 1.0, 0.0,
+			0.5, -0.5,  0.5,  1.0, 0.0, 1.0, 1.0, 1.0,
+			0.5, -0.5,  0.5,  1.0, 0.0, 1.0, 1.0, 1.0,
+			-0.5, -0.5,  0.5,  0.0, 0.0, 0.0, 0.0, 1.0,
+			-0.5, -0.5, -0.5,  0.0, 1.0, 0.0, 0.0, 0.0,
 
-			-0.5,  0.5, -0.5,  0.0, 1.0, 0.0,
-			0.5,  0.5, -0.5,  1.0, 1.0, 1.0,
-			0.5,  0.5,  0.5,  1.0, 0.0, 1.0,
-			0.5,  0.5,  0.5,  1.0, 0.0, 1.0,
-			-0.5,  0.5,  0.5,  0.0, 0.0, 0.0,
-			-0.5,  0.5, -0.5,  0.0, 1.0, 0.0
+			-0.5,  0.5, -0.5,  0.0, 1.0, 0.0, 0.0, 0.0,
+			0.5,  0.5, -0.5,  1.0, 1.0, 1.0, 1.0, 0.0,
+			0.5,  0.5,  0.5,  1.0, 0.0, 1.0, 1.0, 1.0,
+			0.5,  0.5,  0.5,  1.0, 0.0, 1.0, 1.0, 1.0,
+			-0.5,  0.5,  0.5,  0.0, 0.0, 0.0, 0.0, 1.0,
+			-0.5,  0.5, -0.5,  0.0, 1.0, 0.0, 0.0, 0.0,
 		];
 
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
