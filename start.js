@@ -35,6 +35,35 @@ function start() {
 	image.src = "https://cdn.pixabay.com/photo/2013/09/22/19/14/brick-wall-185081_960_720.jpg";
 //****************************************************************
 
+	//texture2 *****************************************************************************
+	const texture2 = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, texture2);
+	const level2 = 0;
+	const internalFormat2 = gl.RGBA;
+	const width2 = 1;
+	const height2 = 1;
+	const border2 = 0;
+	const srcFormat2 = gl.RGBA;
+	const srcType2 = gl.UNSIGNED_BYTE;
+	const pixel2 = new Uint8Array([0, 0, 255, 255]);
+	gl.texImage2D(gl.TEXTURE_2D, level2, internalFormat2,
+		width2, height2, border2, srcFormat2, srcType2,
+		pixel2);
+	const image2 = new Image();
+	image2.onload = function() {
+		gl.bindTexture(gl.TEXTURE_2D, texture2);
+		gl.texImage2D(gl.TEXTURE_2D, level2, internalFormat2,srcFormat2, srcType2, image2);
+		gl.generateMipmap(gl.TEXTURE_2D);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+	};
+	image2.crossOrigin = "";
+	image2.src = "https://images.rawpixel.com/image_1300/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIyLTA1L3BmLWJnMi0xMTQ0LXBhaV8xLmpwZw.jpg";
+//****************************************************************
+
+
 	//*****************pointer lock object forking for cross browser**********************
 	canvas.requestPointerLock = canvas.requestPointerLock ||
 		canvas.mozRequestPointerLock;
@@ -95,6 +124,7 @@ const program = gl.createProgram();
 		   in vec2 TexCoord;
 		   out vec4 frag_color;
 		   uniform sampler2D texture1;
+		   uniform sampler2D texture2;
 		   
 		   void main(void)
 	   	{
@@ -186,6 +216,8 @@ const buffer = gl.createBuffer();
 	let uniProj = gl.getUniformLocation(program, 'proj');
 	gl.uniformMatrix4fv( uniProj, false, proj);
 
+
+
 	// klawisze
 	var pressedKey = {};
 	window.onkeyup = e => pressedKey[e.keyCode] = false;
@@ -208,6 +240,9 @@ const buffer = gl.createBuffer();
 	let startTime=0;
 	let elapsedTime=0;
 
+	gl.uniform1i(gl.getUniformLocation(program, "texture1"), 0);
+	gl.uniform1i(gl.getUniformLocation(program, "texture2"), 1);
+
 function draw() {
 
 	elapsedTime = performance.now() - startTime;
@@ -224,8 +259,16 @@ function draw() {
 
 gl.clearColor(0, 0, 0, 1);
 gl.clear(gl.COLOR_BUFFER_BIT);
-gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-gl.drawArrays(gl.TRIANGLES, 0, n_draw);
+// gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, texture1);
+	gl.drawArrays(gl.TRIANGLES, 0, 12);
+	// gl.activeTexture(gl.TEXTURE1);
+	gl.bindTexture(gl.TEXTURE_2D, texture2);
+	gl.drawArrays(gl.TRIANGLES, 12, 24);
+
+
 
 	window.requestAnimationFrame(draw);
 }
